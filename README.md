@@ -1,6 +1,7 @@
 # FoundryOS Starter Kit
 
 A production-ready foundation for new Blackhollow Studios software platforms.
+Built from the patterns established in Actionboard.
 
 ## Stack
 
@@ -269,8 +270,22 @@ db/migrations/
   20260101000001_seed_issues.sql
 ```
 
-Each file runs once. dbmate tracks applied migrations in a
-`schema_migrations` table it manages automatically.
+**Every migration file must start with `-- migrate:up` and end with `-- migrate:down`:**
+
+```sql
+-- migrate:up
+
+CREATE TABLE your_table (
+  ...
+);
+
+-- migrate:down
+-- Intentionally empty. Rolling back destroys data.
+-- To reset, drop and recreate the database in Neon.
+```
+
+dbmate tracks applied migrations in a `schema_migrations` table it manages automatically.
+Each file runs exactly once. The timestamp prefix determines the order.
 
 ---
 

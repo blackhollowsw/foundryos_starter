@@ -440,7 +440,27 @@ npm run db:seed
 > - `invalid url` error → dbmate can't find `.env`. Run with explicit flag:
 >   `dbmate --env-file .env.local -e DATABASE_URL_DIRECT status`
 > - `could not find migrations directory` → create `db/migrations/` folder first
+> - `requires each migration to define an up block` → every migration file must
+>   start with `-- migrate:up` and end with `-- migrate:down` (see migration format below)
 > - Make sure you're using `DATABASE_URL_DIRECT` (not pooled) for migrations
+
+### Migration file format
+
+Every dbmate migration file must include both markers — dbmate will error without them:
+
+```sql
+-- migrate:up
+
+-- your CREATE TABLE, ALTER TABLE, etc. statements go here
+
+-- migrate:down
+-- Intentionally empty. Rolling back destroys data.
+-- To reset, drop and recreate the database in Neon.
+```
+
+The filename format is `YYYYMMDDHHMMSS_description.sql`.
+The timestamp prefix determines run order.
+dbmate tracks what has been applied in a `schema_migrations` table it manages automatically.
 
 ### 10.5 Start dev server
 
