@@ -1,6 +1,6 @@
 # FoundryOS — Platform Setup Guide
 
-**Version:** 1.0 | **Stack:** Next.js · Neon · Clerk · Vercel · Cloudflare · Resend · Textbelt · DigitalOcean · GitHub
+**Version:** 1.1 | **Stack:** Next.js · Neon · Clerk · Vercel · Cloudflare · Resend · Textbelt · DigitalOcean · GitHub
 
 This guide walks through provisioning every service and wiring them together for a new FoundryOS platform. Follow the steps in order — later steps depend on earlier ones.
 
@@ -38,9 +38,15 @@ Before starting, ensure you have accounts for:
 - [ ] Resend (resend.com — email)
 - [ ] Textbelt (textbelt.com — SMS)
 - [ ] DigitalOcean (digitalocean.com — VPS, if needed)
-- [ ] Norton Password Manager (for storing secrets)
+- [ ] Password Manager (for storing secrets)
+- [ ] dbmate installed (postgres.js projects only — see README)
 
-Have Norton open before you start. Every secret you generate goes in Norton **immediately**.
+Have your password manager open before you start. Every secret you generate goes in it **immediately**.
+
+> **Windows developers:** You will see LF/CRLF warnings on first commit. These are harmless
+> but add a `.gitattributes` file (included in the starter kit) to prevent them on future commits.
+> Also note that some commands in this guide use Unix syntax (`cp`, `mkdir -p`) —
+> use PowerShell equivalents (`Copy-Item`, `New-Item -ItemType Directory -Force`) where needed.
 
 ---
 
@@ -88,30 +94,39 @@ Add these now (you'll fill in values as you provision services):
 3. **Region:** Choose closest to your Vercel deployment region (usually `us-east-1`)
 4. **Postgres version:** Use the default (latest)
 
-### 3.2 Get the connection string
+### 3.2 Get both connection strings
 
-1. Go to your project → **Connection Details**
-2. Select **Pooled connection** (for production/Vercel)
-3. Copy the connection string — format: `postgresql://user:password@host/dbname?sslmode=require`
+Neon gives you two connection strings and you need both:
+
+| String | Variable | Used by | Why |
+|---|---|---|---|
+| **Pooled** (has `-pooler` in hostname) | `DATABASE_URL` | App at runtime, Vercel | Handles concurrent connections efficiently |
+| **Direct** (no pooler) | `DATABASE_URL_DIRECT` | Migrations only | Migrations need a persistent connection; pooled drops mid-migration |
+
+To get them:
+1. Go to your Neon project → **Connection Details**
+2. Copy the **Pooled** connection string → this is `DATABASE_URL`
+3. Toggle to **Direct** connection → copy that string → this is `DATABASE_URL_DIRECT`
+
+Both look like: `postgresql://user:password@host/dbname?sslmode=require`
+The pooled one has `-pooler` in the hostname. The direct one does not.
 
 ### 3.3 Save secrets
 
-Store in Norton under your project:
-- `DATABASE_URL` → the pooled connection string
-- `DATABASE_URL_DIRECT` → the direct (non-pooled) string (needed for migrations)
+Store in your password manager under your project name:
+- `DATABASE_URL` → pooled connection string
+- `DATABASE_URL_DIRECT` → direct connection string
 
 Add `DATABASE_URL` to GitHub Actions secrets now (step 2.3).
 
 ### 3.4 Run migrations
 
-Once your local `.env.local` is set up (step 10), run:
+Once your local environment is set up (step 10), run:
 
 ```bash
-npm run db:migrate    # Creates tables from prisma/schema.prisma
+npm run db:migrate    # Applies migrations using DATABASE_URL_DIRECT
 npm run db:seed       # Seeds reference/lookup data
 ```
-
-> Use the **direct** connection string for migrations (not pooled), or set `DATABASE_URL` to the direct string locally and the pooled string in Vercel.
 
 ---
 
@@ -350,30 +365,86 @@ pm2 startup  # Follow the output instructions to auto-start on reboot
 
 ## 10. Local Development Setup
 
+### 10.1 Clone and install
+
 ```bash
-# Clone your repo
-git clone https://github.com/your-org/your-project.git
-cd your-project
+# Clone the starter kit into your new project folder
+git clone https://github.com/blackhollowsw/foundryos_starter your-project-name
+cd your-project-name
+
+# Re-point git remote to your new project repo
+git remote set-url origin https://github.com/blackhollowsw/your-project-name.git
+git push -u origin main
 
 # Install dependencies
 npm install
+```
 
-# Copy env template
+### 10.2 Set up environment files
+
+Next.js reads `.env.local`. dbmate (for postgres.js projects) reads `.env`.
+Keep both — both are gitignored and safe.
+
+```bash
+# Copy the template
 cp .env.example .env.local
 
-# Fill in .env.local from Norton
-# Required at minimum: DATABASE_URL, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY
+# Fill in .env.local — required at minimum:
+#   DATABASE_URL                        (pooled Neon connection string)
+#   DATABASE_URL_DIRECT                 (direct Neon connection string)
+#   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY   (from Clerk dashboard)
+#   CLERK_SECRET_KEY                    (from Clerk dashboard)
+#   APP_NAME                            (your app name)
+#   APP_URL                             (your production URL)
 
-# Generate Prisma client
-npm run db:generate
+# Copy for dbmate (postgres.js projects only)
+cp .env.local .env          # Mac/Linux
+Copy-Item .env.local .env   # Windows PowerShell
+```
 
-# Run migrations (use direct DB URL locally, not pooled)
+### 10.3 Add .gitattributes (Windows developers — do this once)
+
+If you're on Windows, add a `.gitattributes` file to prevent LF/CRLF
+line ending issues. The starter kit includes one — just make sure it
+was committed. Check with:
+
+```bash
+git show HEAD:.gitattributes
+```
+
+If it's missing, copy it from the starter kit and commit it before
+any other changes.
+
+### 10.4 Run migrations and seed
+
+**Prisma projects:**
+```bash
+npm run db:generate   # Generate Prisma client
+npm run db:migrate    # Apply migrations
+npm run db:seed       # Seed reference data
+```
+
+**postgres.js projects:**
+```bash
+# Verify dbmate is installed (see README postgres.js branch section)
+dbmate -e DATABASE_URL_DIRECT status   # Should show: Applied: 0 / Pending: 0
+
+# Apply migrations
 npm run db:migrate
 
-# Seed the database
+# Seed reference data
 npm run db:seed
+```
 
-# Start dev server
+> **dbmate troubleshooting:**
+> - `invalid url` error → dbmate can't find `.env`. Run with explicit flag:
+>   `dbmate --env-file .env.local -e DATABASE_URL_DIRECT status`
+> - `could not find migrations directory` → create `db/migrations/` folder first
+> - Make sure you're using `DATABASE_URL_DIRECT` (not pooled) for migrations
+
+### 10.5 Start dev server
+
+```bash
 npm run dev
 ```
 

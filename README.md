@@ -155,17 +155,73 @@ rm prisma/schema.prisma prisma/seed.js prisma.config.ts src/lib/prisma.ts
 # Add postgres.js
 npm install postgres
 
-# Add dbmate (Mac)
-brew install dbmate
-
-# Create migration folder structure
+# Create migration folder — dbmate errors if this doesn't exist
 mkdir -p db/migrations
 
 # Update package.json scripts (replace db:* scripts):
 # "db:migrate":  "dbmate -e DATABASE_URL_DIRECT up",
 # "db:rollback": "dbmate -e DATABASE_URL_DIRECT down",
 # "db:seed":     "psql $DATABASE_URL_DIRECT -f db/seed.sql",
-# Remove: "db:generate", "db:studio", "vercel-build" prisma generate step
+# Remove: "db:generate", "db:studio"
+# Update: "vercel-build": "next build"  (remove prisma generate step)
+```
+
+### Installing dbmate
+
+**Mac:**
+```bash
+brew install dbmate
+```
+
+**Windows:**
+1. Download `dbmate-windows-amd64.exe` from:
+   `https://github.com/amacneil/dbmate/releases/latest`
+2. Rename it to `dbmate.exe`
+3. Create `C:\tools` and move `dbmate.exe` there
+4. Add `C:\tools` to your PATH:
+   Start → search "Environment Variables" → Edit system environment variables
+   → Environment Variables → User variables → Path → Edit → New → `C:\tools`
+5. Restart your terminal
+
+**Linux:**
+```bash
+curl -fsSL -o /usr/local/bin/dbmate \
+  https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64
+chmod +x /usr/local/bin/dbmate
+```
+
+### Environment files and dbmate
+
+Next.js reads `.env.local`. dbmate reads `.env`. Keep both:
+
+```bash
+# .env.local  — Next.js reads this (never committed)
+# .env        — dbmate reads this (never committed)
+# .gitignore already excludes both
+
+# After filling in .env.local, copy it for dbmate:
+cp .env.local .env        # Mac/Linux
+Copy-Item .env.local .env # Windows PowerShell
+```
+
+Both files are gitignored — neither will be committed.
+
+### Verify the connection
+
+```bash
+dbmate -e DATABASE_URL_DIRECT status
+```
+
+Expected output when connected with no migrations yet:
+```
+Applied: 0
+Pending: 0
+```
+
+If you see `invalid url` — dbmate can't find your `.env` file.
+Run with explicit env file instead:
+```bash
+dbmate --env-file .env.local -e DATABASE_URL_DIRECT status
 ```
 
 ### postgres.js client singleton

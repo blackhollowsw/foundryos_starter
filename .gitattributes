@@ -1,9 +1,33 @@
-# Normalize line endings
+# Normalize line endings across operating systems.
+# This prevents Windows LF/CRLF warnings and ensures shell scripts
+# work correctly when cloned on Mac or Linux.
+
+# Default: normalize to LF on commit, convert to OS native on checkout
 * text=auto
 
-# Force LF for shell scripts (CRLF breaks bash on Linux/Mac)
-*.sh text eol=lf
+# Force LF for files that must never have CRLF
+*.sh        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.sql       text eol=lf
 
-# Force LF for YAML (GitHub Actions is sensitive to this)
-*.yml text eol=lf
-*.yaml text eol=lf
+# Force LF for all source files
+*.js        text eol=lf
+*.ts        text eol=lf
+*.jsx       text eol=lf
+*.tsx       text eol=lf
+*.css       text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+*.prisma    text eol=lf
+*.env*      text eol=lf
+
+# Binary files — never convert
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.zip       binary
+*.woff      binary
+*.woff2     binary
