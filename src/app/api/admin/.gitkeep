@@ -1,0 +1,3 @@
+# Admin API routes go here.
+# Protect all routes in this folder by ensuring they check Clerk auth server-side.
+# See src/middleware.js — /api/admin/* is protected by default (not in isPublicRoute).

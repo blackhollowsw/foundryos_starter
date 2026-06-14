@@ -1,0 +1,64 @@
+name: Example Background Sync
+
+# Use this workflow template for jobs that need:
+#   - Playwright (web scraping / browser automation)
+#   - More than Vercel's function timeout allows
+#   - VPS-style persistent resources
+#
+# For simple API calls, use Vercel crons instead (vercel.json).
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # Every 5 minutes — adjust as needed
+  workflow_dispatch:          # Allow manual trigger from GitHub UI
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # Cache Playwright browsers to avoid re-downloading on every run
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install Playwright
+        run: npm install playwright
+
+      - name: Install Chromium (if not cached)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Install Chromium system deps only (if cached)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run sync script
+        env:
+          APP_SYNC_SECRET: ${{ secrets.APP_SYNC_SECRET }}
+          DATABASE_URL:    ${{ secrets.DATABASE_URL }}
+        run: node scripts/example-sync.js
+
+      # Upload debug screenshots if the job fails (Playwright output)
+      - name: Upload debug screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: example-debug-screenshots
+          path: example-*.png
+          if-no-files-found: ignore

@@ -1,0 +1,31 @@
+{
+  "name": "foundryos-starter",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev":          "next dev",
+    "build":        "next build",
+    "start":        "next start",
+    "vercel-build": "prisma generate && next build",
+    "db:generate":  "prisma generate",
+    "db:migrate":   "prisma migrate dev",
+    "db:studio":    "prisma studio",
+    "db:seed":      "node prisma/seed.js",
+    "gen:secret":   "node -e \"const c=require('crypto');console.log(c.randomBytes(32).toString('hex'))\""
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@clerk/nextjs":      "^7.4.0",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client":     "^7.8.0",
+    "next":               "16.2.6",
+    "pg":                 "^8.21.0",
+    "react":              "^19.1.0",
+    "react-dom":          "^19.1.0"
+  },
+  "devDependencies": {
+    "prisma": "^7.8.0"
+  }
+}

@@ -1,0 +1,64 @@
+// FILE: prisma/schema.prisma
+// Purpose: Database schema. Replace or extend these models for your project.
+// Run `npm run db:migrate` after any schema changes.
+// Run `npm run db:generate` to regenerate the Prisma client after changes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Uses DATABASE_URL_DIRECT via prisma.config.ts for migrations.
+  // Uses DATABASE_URL (pooled) via src/lib/prisma.ts at runtime.
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ─────────────────────────────────────────────────────────────────────
+
+enum Status {
+  active
+  inactive
+  pending
+}
+
+// ── Models ────────────────────────────────────────────────────────────────────
+
+// Top-level tenant / customer model.
+// clerk_user_id links this record to a Clerk user or org.
+// Replace with your own domain model as needed.
+model Account {
+  account_id      Int       @id @default(autoincrement())
+  account_name    String
+  clerk_user_id   String?   @unique
+  status          Status    @default(active)
+  created_by      String?
+  created_at      DateTime  @default(now())
+  updated_by      String?
+  updated_at      DateTime  @updatedAt
+  deactivated_at  DateTime?
+  deactivated_by  String?
+
+  @@index([clerk_user_id])
+  @@map("accounts")
+}
+
+// CronIncident — built-in incident tracking for background job failures.
+// Works with src/lib/cronIncident.js — do not remove unless you replace the pattern.
+model CronIncident {
+  incident_id       Int       @id @default(autoincrement())
+  job_name          String
+  resource_id       Int?
+  consecutive_fails Int       @default(0)
+  last_error        String?
+  opened_at         DateTime?
+  closed_at         DateTime?
+  alert_sent_at     DateTime?
+  allclear_sent_at  DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@index([job_name])
+  @@index([closed_at])
+  @@map("cron_incidents")
+}
