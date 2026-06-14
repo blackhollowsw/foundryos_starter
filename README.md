@@ -65,7 +65,7 @@ foundryos-starter/
 │   │   ├── comms.js                # Resend email + Textbelt SMS
 │   │   ├── cronIncident.js         # Incident tracking (Prisma + postgres.js)
 │   │   └── credentialCrypto.js     # AES-256-GCM credential encryption
-│   └── middleware.js               # Clerk auth middleware
+│   └── proxy.js               # Clerk auth middleware
 ├── prisma/
 │   ├── schema.prisma               # Database schema
 │   ├── seed.js                     # Reference data seeder
@@ -102,7 +102,7 @@ npm run gen:secret      # Generate a random hex secret (for APP_SYNC_SECRET)
 ## What's Included
 
 **Auth pattern** — Clerk wraps the app via `ClerkProvider` in `layout.js`.
-Middleware in `middleware.js` protects all routes except `/`, `/sign-in`,
+Middleware in `proxy.js` protects all routes except `/`, `/sign-in`,
 `/sign-up`, and `/api/cron/*`. Role-based routing in `page.js` redirects
 users after sign-in based on their Clerk org role.
 
