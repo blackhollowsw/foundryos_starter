@@ -1,0 +1,9 @@
+# Normalize line endings
+* text=auto
+
+# Force LF for shell scripts (CRLF breaks bash on Linux/Mac)
+*.sh text eol=lf
+
+# Force LF for YAML (GitHub Actions is sensitive to this)
+*.yml text eol=lf
+*.yaml text eol=lf
